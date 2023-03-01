@@ -21,6 +21,50 @@ g_timer = Timer()
 parser = argparse.ArgumentParser()
 parser.add_argument('--mocapdir', type=str, default=None, help='Folder of output images.')
 
+import numpy as np
+
+def orientation_diff(R1, R2):
+    """
+    Computes the difference between two 3D orientation matrices.
+
+    Parameters:
+    R1 (ndarray): A 3x3 rotation matrix representing the first orientation.
+    R2 (ndarray): A 3x3 rotation matrix representing the second orientation.
+
+    Returns:
+    float: The angle between the two orientations in radians.
+    """
+
+    # Compute the rotation matrix that takes R1 to R2
+    R12 = np.dot(R2, R1.T)
+
+    # Compute the axis and angle of the rotation that takes R1 to R2
+    temp_val = (np.trace(R12) - 1) / 2
+    if temp_val > 1:
+        temp_val = 1
+    angle = np.arccos(temp_val)
+    axis = np.array([R12[2, 1] - R12[1, 2], R12[0, 2] - R12[2, 0], R12[1, 0] - R12[0, 1]])
+    
+
+    # Normalize the axis vector
+    if (np.linalg.norm(axis) != 0):
+        axis /= np.linalg.norm(axis)
+
+    # Compute the angle difference
+    angle_diff = angle * np.sign(np.dot(axis, np.array([0, 0, 1])))
+
+    return angle_diff
+
+def Joints_rot_match(joints_rotmat1, joints_rotmat2):
+    thresh = 0.1
+    i = 0
+    for joint1, joint2 in zip(joints_rotmat1, joints_rotmat2):
+        # joint1, joint2: 3x3 matrix to represent a joint's orientation
+        if (orientation_diff(joint1, joint2) > thresh):
+            return False
+    
+    return True
+
 def get_video_path(args):
     if args.webcam:
         video_path = 0
@@ -49,7 +93,6 @@ def get_video_path(args):
     else:
         assert False
     return video_path
-
 
 def RunMonomocap(args, smpl, mocapDir, visualizer):
     fileNames = sorted(os.listdir(mocapDir))
@@ -84,6 +127,13 @@ def RunMonomocap(args, smpl, mocapDir, visualizer):
             pred_rotmat = torch.from_numpy( mocapData['parm_pose'][np.newaxis,:])   #24x3x3
             pred_vertices_imgspace =mocapData['pred_vertices_imgspace']
             pred_joints_imgspace =mocapData['pred_joints_imgspace']
+
+
+            joints_rotmat = pred_rotmat[0].numpy() # 3D rotation matrix for 24 joints
+            if (Joints_rot_match(joints_rotmat, joints_rotmat)):
+                print("Match!!!")
+            else:
+                print("Not Match!!!")
 
             if False:    #One way to visualize SMPL from saved vertices
                 tempMesh = {'ver': pred_vertices_imgspace, 'f':  smpl.faces}

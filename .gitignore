@@ -1,0 +1,14 @@
+PyTorch-YOLOv3/
+bodymocap/__pycache__/
+bodymocap/core/__pycache__/
+bodymocap/models/__pycache__/
+bodymocap/utils/__pycache__/
+demo/__pycache__/
+eft_fit/
+extradata/
+lightweight-human-pose-estimation.pytorch/
+mocap_output/
+models_eft/
+renderer/__pycache__/
+renderer/shaders/__pycache__/
+sampledata/
